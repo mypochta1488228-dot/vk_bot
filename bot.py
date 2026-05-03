@@ -187,11 +187,11 @@ for event in longpoll.listen():
             payload = event.obj['payload']
             user_id = event.obj['user_id']
             event_id = event.obj['event_id']
-            
+    
             if 'num' in payload:
                 selected_num = int(payload['num'])
                 print(f"🔍 Получено число {selected_num}")
-                
+        
                 if user_id not in user_data:
                     user_data[user_id] = {
                         'blocked': False,
@@ -199,27 +199,26 @@ for event in longpoll.listen():
                         'chosen_list2': [],
                         'current_list': 1
                     }
-                
+        
                 data = user_data[user_id]
-                
+        
                 if data.get('blocked', False):
+                    # Тихий ответ при блокировке
                     vk.messages.sendMessageEventAnswer(
                         event_id=event_id,
                         user_id=user_id,
-                        peer_id=user_id,
-                        payload=json.dumps({"result": "blocked"})
+                        peer_id=user_id
                     )
                     continue
-                
+        
                 current_list = data['current_list']
-                
+        
                 if current_list == 1:
                     if selected_num not in LIST_1:
                         vk.messages.sendMessageEventAnswer(
                             event_id=event_id,
                             user_id=user_id,
-                            peer_id=user_id,
-                            payload=json.dumps({"result": "error"})
+                            peer_id=user_id
                         )
                         continue
                     letter = LIST_1[selected_num]
@@ -229,18 +228,17 @@ for event in longpoll.listen():
                         vk.messages.sendMessageEventAnswer(
                             event_id=event_id,
                             user_id=user_id,
-                            peer_id=user_id,
-                            payload=json.dumps({"result": "error"})
+                            peer_id=user_id
                         )
                         continue
                     letter = LIST_2[selected_num]
                     data['chosen_list2'].append(selected_num)
-                
+        
                 # Переключаем список
                 data['current_list'] = 2 if current_list == 1 else 1
                 data['blocked'] = True
-                
-                # ✅ Отправляем НОВОЕ сообщение с результатом (не редактируем старое!)
+        
+                # ✅ Отправляем НОВОЕ сообщение с результатом
                 vk.messages.send(
                     user_id=user_id,
                     from_group=1,
@@ -248,18 +246,18 @@ for event in longpoll.listen():
                     random_id=random.randint(1, 1000000)
                 )
                 print(f"✅ Отправлено")
-                
-                # ✅ Отвечаем на callback (кнопка "нажимается")
+        
+                # ✅ Тихий ответ на callback (БЕЗ плашки!)
                 vk.messages.sendMessageEventAnswer(
                     event_id=event_id,
                     user_id=user_id,
-                    peer_id=user_id,
-                    payload=json.dumps({"result": "ok"})
+                    peer_id=user_id
+                    # ← Без payload = не показывает уведомление
                 )
-                
+        
                 # Запускаем таймер
                 threading.Thread(target=start_timer, args=(user_id,)).start()
-                
+        
                 print(f"🎲 Пользователь {user_id} выбрал {selected_num} → {letter}")
     
     except Exception as e:
