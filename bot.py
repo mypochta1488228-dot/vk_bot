@@ -247,14 +247,6 @@ for event in longpoll.listen():
                 )
                 print(f"✅ Отправлено")
         
-                # ✅ Тихий ответ на callback (БЕЗ плашки!)
-                vk.messages.sendMessageEventAnswer(
-                    event_id=event_id,
-                    user_id=user_id,
-                    peer_id=user_id
-                    # ← Без payload = не показывает уведомление
-                )
-        
                 # Запускаем таймер
                 threading.Thread(target=start_timer, args=(user_id,)).start()
         
