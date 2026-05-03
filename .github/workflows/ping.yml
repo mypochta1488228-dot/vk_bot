@@ -1,0 +1,17 @@
+name: Ping Bot - 1
+
+on:
+  schedule:
+    # Пинг каждые 26 минут: 0, 26, 52 минуты каждого часа
+    - cron: '0,26,52 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render bot
+        run: |
+          echo "🔍 Пингую бота..."
+          curl -s -o /dev/null -w "Status: %{http_code}\n" "https://vk-bot-t9cv.onrender.com/ping"
+          echo "✅ Пинг отправлен!"
