@@ -129,7 +129,7 @@ def create_keyboard(user_id):
 # Таймер (100 секунд)
 # ================================
 def start_timer(user_id):
-    time.sleep(100)
+    time.sleep(10)
     user_data[user_id]['blocked'] = False
     
     data = user_data[user_id]
