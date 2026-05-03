@@ -4,7 +4,7 @@ import random
 import time
 import threading
 import json
-from flask import Flask  # ✅ Добавляем Flask
+from flask import Flask
 
 # ================================
 # НАСТРОЙКИ
@@ -29,7 +29,7 @@ LIST_2 = {
 }
 
 # ================================
-# ✅ FLASK ДЛЯ ПИНГОВ
+# FLASK ДЛЯ ПИНГОВ
 # ================================
 app = Flask(__name__)
 
@@ -147,16 +147,15 @@ def start_timer(user_id):
         print(f"🎉 Пользователь {user_id} завершил игру!")
         return
     
-    keyboard = create_keyboard(user_id)
-    if keyboard:
-        vk.messages.send(
-            user_id=user_id,
-            from_group=1,
-            message="Можно выбирать снова:",
-            keyboard=keyboard,
-            random_id=random.randint(1, 1000000)
-        )
-        print(f"⏳ Таймер завершён для пользователя {user_id}")
+    # ✅ Отправляем НОВОЕ сообщение с обновлённой клавиатурой
+    vk.messages.send(
+        user_id=user_id,
+        from_group=1,
+        message="🎲 **Можно выбирать снова!**",
+        keyboard=create_keyboard(user_id),
+        random_id=random.randint(1, 1000000)
+    )
+    print(f"⏳ Таймер завершён для пользователя {user_id}")
 
 # ================================
 # Основной цикл
@@ -187,6 +186,7 @@ for event in longpoll.listen():
         elif event.type == VkBotEventType.MESSAGE_EVENT:
             payload = event.obj['payload']
             user_id = event.obj['user_id']
+            event_id = event.obj['event_id']
             
             if 'num' in payload:
                 selected_num = int(payload['num'])
@@ -203,32 +203,61 @@ for event in longpoll.listen():
                 data = user_data[user_id]
                 
                 if data.get('blocked', False):
+                    vk.messages.sendMessageEventAnswer(
+                        event_id=event_id,
+                        user_id=user_id,
+                        peer_id=user_id,
+                        payload=json.dumps({"result": "blocked"})
+                    )
                     continue
                 
                 current_list = data['current_list']
                 
                 if current_list == 1:
                     if selected_num not in LIST_1:
+                        vk.messages.sendMessageEventAnswer(
+                            event_id=event_id,
+                            user_id=user_id,
+                            peer_id=user_id,
+                            payload=json.dumps({"result": "error"})
+                        )
                         continue
                     letter = LIST_1[selected_num]
                     data['chosen_list1'].append(selected_num)
                 else:
                     if selected_num not in LIST_2:
+                        vk.messages.sendMessageEventAnswer(
+                            event_id=event_id,
+                            user_id=user_id,
+                            peer_id=user_id,
+                            payload=json.dumps({"result": "error"})
+                        )
                         continue
                     letter = LIST_2[selected_num]
                     data['chosen_list2'].append(selected_num)
                 
+                # Переключаем список
                 data['current_list'] = 2 if current_list == 1 else 1
                 data['blocked'] = True
                 
+                # ✅ Отправляем НОВОЕ сообщение с результатом (не редактируем старое!)
                 vk.messages.send(
                     user_id=user_id,
                     from_group=1,
-                    message=f"Выбрано число {selected_num}!\n\nВаш пункт: {letter}",
+                    message=f"✅ **Вы выбрали пункт:**\n\n🎲 Число: {selected_num}\n📝 Значение: {letter}",
                     random_id=random.randint(1, 1000000)
                 )
                 print(f"✅ Отправлено")
                 
+                # ✅ Отвечаем на callback (кнопка "нажимается")
+                vk.messages.sendMessageEventAnswer(
+                    event_id=event_id,
+                    user_id=user_id,
+                    peer_id=user_id,
+                    payload=json.dumps({"result": "ok"})
+                )
+                
+                # Запускаем таймер
                 threading.Thread(target=start_timer, args=(user_id,)).start()
                 
                 print(f"🎲 Пользователь {user_id} выбрал {selected_num} → {letter}")
